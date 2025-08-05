@@ -7,6 +7,13 @@ module Ridgepole
     def initialize(options = {})
       @options = options
       @logger = Ridgepole::Logger.instance
+
+      @options[:ignore_string_type_change] = true
+      @options[:ignore_integer_size_change] = true
+      @options[:ignore_float_size_change] = true
+      @options[:ignore_numeric_constraints] = true
+      @options[:ignore_default] = true
+      @options[:ignore_column_order] = true
     end
 
     def diff(from, to, options = {})
@@ -245,6 +252,7 @@ module Ridgepole
         if from_attrs
           to_attrs = build_attrs_if_changed(to_attrs, from_attrs)
           if to_attrs
+            puts "CHANGE #{table_name}.#{column_name} #{from_attrs} #{to_attrs}"
             definition_delta[:change] ||= {}
             definition_delta[:change][column_name] = to_attrs
           end
@@ -264,7 +272,7 @@ module Ridgepole
         priv_column_name = column_name
       end
 
-      if Ridgepole::ConnectionAdapters.postgresql?
+      if Ridgepole::ConnectionAdapters.postgresql? && !options[:ignore_column_order]
         added_size = 0
         to.reverse_each.with_index do |(column_name, to_attrs), i|
           if to_attrs[:options].delete(:after)
@@ -301,6 +309,18 @@ module Ridgepole
       end
 
       table_delta[:definition] = definition_delta unless definition_delta.empty?
+    end
+
+    def normalize_type(typename)
+      if typename == :string && @options[:ignore_string_type_change]
+        :text
+      elsif typename == :integer && @options[:ignore_integer_size_change]
+        :bigint
+      elsif typename == :float && @options[:ignore_float_size_change]
+        :"double precision"
+      else
+        typename
+      end
     end
 
     def scan_column_rename(from, to, definition_delta)
@@ -393,6 +413,16 @@ module Ridgepole
       opts[:null] = true if !opts.key?(:null) && !primary_key
       default_limit = Ridgepole::DefaultsLimit.default_limit(attrs[:type], @options)
       opts.delete(:limit) if opts[:limit] == default_limit
+
+      if @options[:ignore_numeric_constraints]
+        opts.delete(:limit)
+        opts.delete(:precision)
+        opts.delete(:scale)
+      end
+
+      if @options[:ignore_default]
+        opts.delete(:default)
+      end
 
       # XXX: MySQL only?
       opts[:default] = nil if !opts.key?(:default) && !primary_key
@@ -530,6 +560,9 @@ module Ridgepole
       attrs1 = attrs1.merge(options: attrs1.fetch(:options, {}).dup)
       attrs2 = attrs2.merge(options: attrs2.fetch(:options, {}).dup)
       normalize_default_proc_options!(attrs1[:options], attrs2[:options])
+
+      attrs1[:type] = self.normalize_type(attrs1[:type])
+      attrs2[:type] = self.normalize_type(attrs2[:type])
 
       if @options[:skip_column_comment_change]
         attrs1.fetch(:options).delete(:comment)
