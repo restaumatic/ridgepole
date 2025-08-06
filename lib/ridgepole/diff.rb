@@ -254,7 +254,7 @@ module Ridgepole
         if from_attrs
           to_attrs = build_attrs_if_changed(to_attrs, from_attrs)
           if to_attrs
-            puts "CHANGE #{table_name}.#{column_name} #{from_attrs} #{to_attrs}"
+            #puts "CHANGE #{table_name}.#{column_name} #{from_attrs} #{to_attrs}"
             definition_delta[:change] ||= {}
             definition_delta[:change][column_name] = to_attrs
           end
