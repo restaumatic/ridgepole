@@ -37,6 +37,7 @@ output_file = '-'
 split = false
 diff_files = nil
 diff_with_apply = false
+script_only = false
 exit_code = 0
 spec_name = ''
 
@@ -130,6 +131,7 @@ ARGV.options do |opt|
     diff_files = [diff_arg1, diff_arg2]
   end
   opt.on('',   '--with-apply') { diff_with_apply = true }
+  opt.on('',   '--script-only') { script_only = true }
   opt.on('-o', '--output SCHEMAFILE') { |v| output_file = v }
   opt.on('-t', '--tables TABLES', Array) { |v| options[:tables] = v }
   opt.on('',   '--ignore-tables REGEX_LIST', Array) { |v| options[:ignore_tables] = v.map { |i| Regexp.new(i) } }
@@ -282,6 +284,8 @@ begin
       differ, _out = delta.migrate if differ
 
       logger.info('No change') if differ
+    elsif script_only && delta.differ?
+      puts "#{delta.script}\n"
     elsif delta.differ?
       differ = noop_migrate(delta, options)
       exit_code = 1 if differ
