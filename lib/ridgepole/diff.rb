@@ -8,6 +8,7 @@ module Ridgepole
       @options = options
       @logger = Ridgepole::Logger.instance
 
+      # TODO: move this to proper command line options
       @options[:ignore_string_type_change] = true
       @options[:ignore_integer_size_change] = true
       @options[:ignore_float_size_change] = true
