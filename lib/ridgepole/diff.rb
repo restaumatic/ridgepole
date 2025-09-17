@@ -432,8 +432,8 @@ module Ridgepole
         opts.delete(:default)
       end
 
-      # XXX: MySQL only?
-      opts[:default] = nil if !opts.key?(:default) && !primary_key
+      # # XXX: MySQL only?
+      # opts[:default] = nil if !opts.key?(:default) && !primary_key
 
       if Ridgepole::ConnectionAdapters.mysql?
         opts[:unsigned] = false unless opts.key?(:unsigned)
